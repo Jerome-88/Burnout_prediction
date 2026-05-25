@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased;
+  }
+}
+
+@layer components {
+  .slider {
+    @apply w-full h-1.5 rounded-full appearance-none cursor-pointer outline-none;
+    background: linear-gradient(
+      to right,
+      #6366f1 var(--val, 0%),
+      #e2e8f0 var(--val, 0%)
+    );
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    @apply w-4 h-4 rounded-full bg-indigo-500 cursor-pointer;
+    border: 2px solid white;
+    box-shadow: 0 0 0 1px #6366f1, 0 1px 4px rgba(99,102,241,0.3);
+  }
+
+  .slider::-moz-range-thumb {
+    @apply w-4 h-4 rounded-full bg-indigo-500 cursor-pointer;
+    border: 2px solid white;
+    box-shadow: 0 0 0 1px #6366f1;
+  }
+}
