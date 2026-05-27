@@ -1,19 +1,29 @@
+# OS metadata
+.DS_Store
+__MACOSX/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env
+.env.*
+
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-
-# Node
+# Node / Vite
 node_modules/
+frontend/node_modules/
 frontend/dist/
+frontend/.env
 frontend/.env.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Model binaries (uncomment to exclude .pkl)
-# models/
-
-# Data
-# dataset.csv
+# Logs
+*.log

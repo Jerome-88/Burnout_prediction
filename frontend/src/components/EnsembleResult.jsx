@@ -1,170 +1,380 @@
-import { useEffect, useRef, useMemo } from 'react'
+import { AlertTriangle, CheckCircle2, Clock3, Coffee, Dumbbell, Gauge, Laptop, Moon, RefreshCw, Sparkles } from 'lucide-react'
 
 const LEVEL = {
   Low: {
-    color:   'text-emerald-700',
-    bg:      'bg-emerald-50',
-    border:  'border-emerald-200',
-    bar:     'bg-emerald-500',
-    dot:     'bg-emerald-400',
-    message: "Your patterns suggest a healthy work-life balance. Keep maintaining these habits.",
+    color: 'text-teal-700',
+    soft: 'bg-teal-500/12 text-teal-800 border-teal-400/20',
+    bar: 'bg-teal-500',
+    glow: 'shadow-teal-500/30',
+    ring: '#14b8a6',
+    ringLight: '#99f6e4',
+    gradientFrom: '#0d9488',
+    gradientTo: '#5eead4',
+    title: 'Low Burnout Risk',
+    message: 'Your input pattern looks relatively balanced based on the trained dataset.',
+    guidance: 'Keep maintaining healthy sleep, recovery, and workload boundaries.',
+    story: {
+      eyebrow: 'Balanced rhythm detected',
+      verdict: 'Your routine reads like a clean, stable workday.',
+      tone: 'The model sees enough recovery signals to keep the risk low.',
+      accent: 'Recovery is doing its job.',
+    },
+    bullets: [
+      'The final model found stronger similarity with low-risk patterns.',
+      'The probability distribution is still shown so the result stays transparent.',
+      'Use this as a reflective signal, not as a clinical conclusion.',
+    ],
   },
   Medium: {
-    color:   'text-amber-700',
-    bg:      'bg-amber-50',
-    border:  'border-amber-200',
-    bar:     'bg-amber-400',
-    dot:     'bg-amber-400',
-    message: "Some warning signs detected. Consider reviewing your workload and daily routine.",
+    color: 'text-amber-700',
+    soft: 'bg-amber-500/12 text-amber-900 border-amber-400/20',
+    bar: 'bg-amber-400',
+    glow: 'shadow-amber-500/30',
+    ring: '#f59e0b',
+    ringLight: '#fde68a',
+    gradientFrom: '#d97706',
+    gradientTo: '#fcd34d',
+    title: 'Medium Burnout Risk',
+    message: 'Some warning signs appear in your daily pattern.',
+    guidance: 'Consider reviewing workload, screen time, sleep, and recovery habits.',
+    story: {
+      eyebrow: 'Mixed signals detected',
+      verdict: 'Your day looks productive, but recovery may be getting squeezed.',
+      tone: 'The data points sit between balanced and overloaded patterns.',
+      accent: 'Small habit shifts could move the needle.',
+    },
+    bullets: [
+      'The model detected a mixed pattern between balanced and higher-risk routines.',
+      'Medium confidence can indicate that several factors are close to a decision boundary.',
+      'Small improvements in rest, workload, or recovery may meaningfully change the result.',
+    ],
   },
   High: {
-    color:   'text-rose-700',
-    bg:      'bg-rose-50',
-    border:  'border-rose-200',
-    bar:     'bg-rose-500',
-    dot:     'bg-rose-400',
-    message: "High burnout indicators found. Prioritizing rest and recovery is important right now.",
+    color: 'text-rose-700',
+    soft: 'bg-rose-500/12 text-rose-900 border-rose-400/20',
+    bar: 'bg-rose-500',
+    glow: 'shadow-rose-500/30',
+    ring: '#f43f5e',
+    ringLight: '#fda4af',
+    gradientFrom: '#e11d48',
+    gradientTo: '#fb7185',
+    title: 'High Burnout Risk',
+    message: 'Several indicators are similar to high burnout-risk patterns in the dataset.',
+    guidance: 'Take a deep breath. Consider reviewing your task load, recovery time, and support system.',
+    story: {
+      eyebrow: 'Pressure pattern detected',
+      verdict: 'Your inputs tell a heavier story: high output, limited recovery.',
+      tone: 'The model links this pattern with higher burnout-risk records.',
+      accent: 'This is a signal to slow the load, not ignore it.',
+    },
+    bullets: [
+      'The final model found strong similarity with high-risk records in the dataset.',
+      'Higher risk usually reflects a combined pattern, not one isolated input.',
+      'This is an educational alert to reflect on workload and recovery, not a diagnosis.',
+    ],
   },
 }
 
-const LOW_POOL = [
-  { postid: '15979454016311964961', ratio: '0.658635', song: '/low1.mp3'    },
-  { postid: '14223536015423111051', ratio: '1',        song: '/low2.mp3'    },
-]
-
-const MEDIUM_POOL = [
-  { postid: '5176744716422677112',  ratio: '1.58599',  song: '/medium1.mp3' },
-  { postid: '4570998493364427214',  ratio: '1.55',     song: '/medium2.mp3' },
-]
-
-const HIGH_POOL = [
-  { postid: '27276389',             ratio: '1',        song: '/high1.mp3'   },
-  { postid: '3603719653969248043',  ratio: '1.63816',  song: '/high2.mp3'   },
-]
-
-function pick(arr) { return arr[Math.floor(Math.random() * arr.length)] }
-
-function TenorEmbed({ postid, ratio }) {
-  const containerRef = useRef(null)
-
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    const div = document.createElement('div')
-    div.className             = 'tenor-gif-embed'
-    div.dataset.postid        = postid
-    div.dataset.shareMethod   = 'host'
-    div.dataset.aspectRatio   = ratio
-    div.dataset.width         = '100%'
-    container.appendChild(div)
-
-    if (window.renderTenorEmbeds) {
-      window.renderTenorEmbeds()
-    } else {
-      const script = document.createElement('script')
-      script.src   = 'https://tenor.com/embed.js'
-      script.async = true
-      document.body.appendChild(script)
-    }
-
-    return () => { if (container.contains(div)) container.removeChild(div) }
-  }, [postid, ratio])
-
-  return <div ref={containerRef} className="rounded-xl overflow-hidden" />
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max)
 }
 
-export default function EnsembleResult({ data, onReset }) {
-  const cfg      = LEVEL[data.prediction]
-  const audioRef = useRef(null)
+function formatValue(value, unit = '') {
+  if (value === undefined || value === null || value === '') return '-'
+  return `${value}${unit}`
+}
 
-  const { postid, ratio, song } = useMemo(() => {
-    const pool = data.prediction === 'Medium' ? MEDIUM_POOL
-               : data.prediction === 'High'   ? HIGH_POOL
-               : LOW_POOL
-    return pick(pool)
-  }, [data.prediction])
+function getWorkloadLabel(input) {
+  const workHours = Number(input?.daily_work_hours || 0)
+  const meetings = Number(input?.meetings_per_day || 0)
+  const bugs = Number(input?.bugs_per_day || 0)
 
-  useEffect(() => {
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
-    const audio    = new Audio(song)
-    audio.volume   = 0.5
-    audio.loop     = true
-    audioRef.current = audio
-    audio.play().catch(() => {})
-    return () => { audio.pause(); audioRef.current = null }
-  }, [song])
+  if (workHours >= 10 || meetings >= 7 || bugs >= 12) return 'heavy workload'
+  if (workHours >= 8 || meetings >= 4 || bugs >= 6) return 'active workload'
+  return 'light workload'
+}
 
-  const replay = () => {
-    if (!audioRef.current) return
-    audioRef.current.currentTime = 0
-    audioRef.current.play().catch(() => {})
+function getRecoveryLabel(input) {
+  const sleep = Number(input?.sleep_hours || 0)
+  const exercise = Number(input?.exercise_hours || 0)
+
+  if (sleep >= 7 && exercise >= 1) return 'solid recovery'
+  if (sleep >= 6) return 'okay recovery'
+  return 'low recovery'
+}
+
+function getLifestyleLabel(input) {
+  const screen = Number(input?.screen_time || 0)
+  const caffeine = Number(input?.caffeine_intake || 0)
+
+  if (screen >= 10 || caffeine >= 4) return 'high stimulation'
+  if (screen >= 7 || caffeine >= 2) return 'moderate stimulation'
+  return 'calm stimulation'
+}
+
+function buildStory(input, prediction) {
+  if (!input) return null
+
+  const workload = getWorkloadLabel(input)
+  const recovery = getRecoveryLabel(input)
+  const lifestyle = getLifestyleLabel(input)
+
+  const templates = {
+    Low: `You logged ${formatValue(input.daily_work_hours, 'h')} work, ${formatValue(input.sleep_hours, 'h')} sleep, and ${formatValue(input.exercise_hours, 'h')} exercise. That gives the model a ${workload} + ${recovery} profile.`,
+    Medium: `You logged ${formatValue(input.daily_work_hours, 'h')} work, ${formatValue(input.screen_time, 'h')} screen time, and ${formatValue(input.sleep_hours, 'h')} sleep. The model sees ${workload}, ${lifestyle}, and recovery that may need tuning.`,
+    High: `You logged ${formatValue(input.daily_work_hours, 'h')} work, ${formatValue(input.screen_time, 'h')} screen time, ${formatValue(input.caffeine_intake, ' cups')} caffeine, and ${formatValue(input.sleep_hours, 'h')} sleep. That combination looks closer to overload patterns.`,
   }
 
+  return templates[prediction] || templates.Low
+}
+
+function SignalPill({ label, value, icon: Icon }) {
   return (
-    <div className={`rounded-3xl border-2 ${cfg.border} ${cfg.bg} p-8`}>
-      <div className="flex items-start justify-between mb-5">
-        <div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
-            Your Assessment
+    <div className="group rounded-2xl bg-white/55 p-3 ring-1 ring-white/65 transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/70">
+      <Icon size={15} className="mb-1 text-slate-500 transition-transform duration-200 group-hover:scale-110" />
+      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-slate-800">{value}</p>
+    </div>
+  )
+}
+
+// SVG Arc Confidence Ring
+function ConfidenceRing({ confidence, cfg, latencyText }) {
+  const size = 192
+  const strokeWidth = 13
+  const radius = (size - strokeWidth) / 2
+  const cx = size / 2
+  const cy = size / 2
+  const circumference = 2 * Math.PI * radius
+  const pct = clamp(confidence, 0, 100) / 100
+  const dashOffset = circumference * (1 - pct)
+  const gradId = `conf-grad-${cfg.ring.replace('#', '')}`
+  const glowId = `conf-glow-${cfg.ring.replace('#', '')}`
+
+  return (
+    <div className="relative flex flex-col items-center justify-center">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg
+          width={size}
+          height={size}
+          viewBox={`0 0 ${size} ${size}`}
+          className="absolute inset-0 -rotate-90"
+          style={{ filter: `drop-shadow(0 0 8px ${cfg.ring}66) drop-shadow(0 0 18px ${cfg.ring}33)` }}
+        >
+          <defs>
+            <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={cfg.gradientFrom} />
+              <stop offset="100%" stopColor={cfg.gradientTo} />
+            </linearGradient>
+            <filter id={glowId}>
+              <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          {/* Track (background ring) */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={radius}
+            fill="none"
+            stroke="rgba(255,255,255,0.35)"
+            strokeWidth={strokeWidth}
+          />
+
+          {/* Progress arc */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={radius}
+            fill="none"
+            stroke={`url(#${gradId})`}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={dashOffset}
+            filter={`url(#${glowId})`}
+            style={{ transition: 'stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)' }}
+          />
+
+        </svg>
+
+        {/* Inner card */}
+        <div
+          className="absolute inset-0 m-4 rounded-full flex flex-col items-center justify-center text-center"
+          style={{
+            background: 'rgba(255,255,255,0.82)',
+            backdropFilter: 'blur(12px)',
+            boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.9), 0 4px 20px rgba(0,0,0,0.06)',
+          }}
+        >
+          <p
+            className="text-[10px] font-bold uppercase tracking-[0.25em] mb-0.5"
+            style={{ color: cfg.gradientFrom, opacity: 0.85 }}
+          >
+            Confidence
           </p>
-          <div className="flex items-center gap-2.5">
-            <h2 className={`text-3xl font-bold ${cfg.color}`}>
-              {data.prediction} Risk
-            </h2>
+          <p className={`text-4xl font-extrabold leading-none ${cfg.color}`}>
+            {confidence}<span className="text-2xl font-bold">%</span>
+          </p>
+          <div
+            className="mt-2 h-px w-10 rounded-full opacity-30"
+            style={{ background: cfg.ring }}
+          />
+          <p className="mt-1.5 text-[11px] font-medium text-slate-400">
+            Latency {latencyText}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function EnsembleResult({ data, meta, inputSnapshot, onReset }) {
+  if (!data) return null
+
+  const cfg = LEVEL[data.prediction] || LEVEL.Low
+  const latencyText = meta?.latency_ms !== undefined ? `${meta.latency_ms} ms` : 'Not measured'
+  const confidence = clamp(Number(data.confidence || 0), 0, 100)
+  const storyText = buildStory(inputSnapshot, data.prediction)
+
+  return (
+    <div className="glass-panel relative overflow-hidden p-5 sm:p-8 transition-all duration-500 animate-[fadeIn_0.35s_ease-out]">
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/90 to-transparent" />
+      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full opacity-20 blur-3xl" style={{ background: cfg.ring }} />
+
+      <div className="relative grid gap-8 lg:grid-cols-[1fr_220px] lg:items-center">
+        <div>
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/55 px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-white/60">
+            <Sparkles size={14} />
+            Main Prediction · Soft Voting Ensemble
+          </div>
+          <h2 className={`text-4xl font-bold tracking-tight sm:text-5xl ${cfg.color}`}>
+            {cfg.title}
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
+            {cfg.message} Final confidence reflects agreement across multiple classical ML models.
+          </p>
+
+          {storyText && (
+            <div className="relative mt-5 overflow-hidden rounded-[2rem] border border-white/60 bg-white/50 p-5 shadow-2xl shadow-slate-900/10 backdrop-blur-xl">
+              <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/90 to-transparent" />
+              <div className="pointer-events-none absolute -bottom-16 -right-16 h-36 w-36 rounded-full opacity-20 blur-2xl" style={{ background: cfg.ring }} />
+
+              <div className="relative mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">
+                    Input Story
+                  </p>
+                  <p className={`mt-1 text-sm font-semibold ${cfg.color}`}>
+                    {cfg.story.eyebrow}
+                  </p>
+                </div>
+
+                <span className={`rounded-full border px-3 py-1 text-xs font-bold ${cfg.soft}`}>
+                  {data.prediction} verdict
+                </span>
+              </div>
+
+              <p className="relative text-base font-semibold leading-relaxed text-slate-900">
+                {cfg.story.verdict}
+              </p>
+
+              <p className="relative mt-2 text-sm leading-relaxed text-slate-600">
+                {storyText}
+              </p>
+
+              <div className="relative mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                <SignalPill label="Work" value={formatValue(inputSnapshot.daily_work_hours, 'h')} icon={Clock3} />
+                <SignalPill label="Sleep" value={formatValue(inputSnapshot.sleep_hours, 'h')} icon={Moon} />
+                <SignalPill label="Screen" value={formatValue(inputSnapshot.screen_time, 'h')} icon={Laptop} />
+                <SignalPill label="Exercise" value={formatValue(inputSnapshot.exercise_hours, 'h')} icon={Dumbbell} />
+                <SignalPill label="Caffeine" value={formatValue(inputSnapshot.caffeine_intake, ' cups')} icon={Coffee} />
+              </div>
+
+              <div className="relative mt-4 flex flex-col gap-2 rounded-2xl bg-slate-950/[0.03] p-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs font-semibold leading-relaxed text-slate-600">
+                  {cfg.story.accent}
+                </p>
+                <p className="text-xs leading-relaxed text-slate-500">
+                  {cfg.story.tone}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-3xl bg-white/45 p-4 ring-1 ring-white/55">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Interpretation</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-700">{cfg.message}</p>
+            </div>
+            <div className="rounded-3xl bg-white/45 p-4 ring-1 ring-white/55">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Supportive next step</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-700">{cfg.guidance}</p>
+            </div>
           </div>
         </div>
-        <div className="text-right">
-          <p className="text-xs text-slate-400 mb-1">Confidence</p>
-          <p className={`text-2xl font-bold ${cfg.color}`}>{data.confidence}%</p>
+
+        {/* ── Polished SVG confidence ring ── */}
+        <div className="mx-auto flex flex-col items-center justify-center">
+          <ConfidenceRing confidence={confidence} cfg={cfg} latencyText={latencyText} />
         </div>
       </div>
 
-      <p className="text-slate-600 text-sm leading-relaxed mb-4">{cfg.message}</p>
-
-      {/* Now playing */}
-      <button
-        onClick={replay}
-        className="inline-flex items-center gap-2 text-xs text-slate-400 hover:text-slate-600 transition-colors mb-6"
-      >
-        <span className="text-base">♪</span>
-        <span>{song.replace('/', '').replace('.mp3', '')}</span>
-        <span className="text-slate-300">· click to replay</span>
-      </button>
-
-      {/* GIF */}
-      <div className="mb-6 max-w-xs mx-auto">
-        <TenorEmbed postid={postid} ratio={ratio} />
-      </div>
-
-      {/* Probability bars */}
-      <div className="space-y-3">
+      <div className="relative mt-8 space-y-3">
         {['Low', 'Medium', 'High'].map(label => {
-          const val = data.probabilities[label]
+          const val = data.probabilities?.[label] ?? 0
           return (
-            <div key={label} className="flex items-center gap-3">
-              <span className="text-xs font-medium text-slate-500 w-14">{label}</span>
-              <div className="flex-1 h-2 bg-white/70 rounded-full overflow-hidden">
+            <div key={label} className="grid grid-cols-[64px_1fr_48px] items-center gap-3">
+              <span className="text-xs font-semibold text-slate-500">{label}</span>
+              <div className="h-2.5 overflow-hidden rounded-full bg-slate-500/25 ring-1 ring-white/60">
                 <div
                   className={`h-full ${LEVEL[label].bar} rounded-full transition-all duration-700`}
                   style={{ width: `${val}%` }}
                 />
               </div>
-              <span className="text-xs font-semibold text-slate-600 w-10 text-right">{val}%</span>
+              <span className="text-right text-xs font-semibold text-slate-600">{val}%</span>
             </div>
           )
         })}
       </div>
 
-      <p className="text-xs text-slate-400 mt-5">
-        Soft-voting ensemble of 5 prediction models
-      </p>
+      <div className="relative mt-8 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="rounded-3xl bg-white/42 p-5 ring-1 ring-white/55">
+          <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-800">
+            <Gauge size={17} />
+            Why this output is interpretable
+          </div>
+          <ul className="space-y-2 text-sm leading-relaxed text-slate-600">
+            {cfg.bullets.map(item => (
+              <li key={item} className="flex gap-2">
+                <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-slate-500" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className={`rounded-3xl border p-5 ${cfg.soft}`}>
+          <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            <AlertTriangle size={17} />
+            Responsible AI note
+          </div>
+          <p className="text-sm leading-relaxed">
+            This tool is for educational Machine Learning demonstration only. It should not be used as a medical or psychological diagnosis, and the result depends on dataset quality and model limitations.
+          </p>
+        </div>
+      </div>
 
       <button
         onClick={onReset}
-        className="mt-5 w-full py-2.5 rounded-2xl bg-slate-100 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+        className="relative mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white/58 px-5 py-3 text-sm font-semibold text-slate-800 ring-1 ring-white/65 transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/75 active:scale-[0.98]"
       >
-        New Prediction
+        <RefreshCw size={15} />
+        Reset Assessment
       </button>
     </div>
   )
