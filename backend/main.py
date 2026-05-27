@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import json
+import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Dict, List
 
 import joblib
 import numpy as np
-import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -18,12 +19,12 @@ app = FastAPI(
     version="1.0.0",
 )
 
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
+_allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-    ],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -82,6 +83,8 @@ for name, fname in MODEL_FILES.items():
 if not models:
     raise RuntimeError("No model files were found. Train the models first and save them in the models/ directory.")
 
+_executor = ThreadPoolExecutor(max_workers=len(models))
+
 
 class InputData(BaseModel):
     age: float = Field(..., ge=18, le=65, description="User age in years")
@@ -120,7 +123,7 @@ def _align_proba_to_labels(model, proba: np.ndarray) -> np.ndarray:
     return aligned
 
 
-def get_proba(model, X: pd.DataFrame) -> np.ndarray:
+def get_proba(model, X: np.ndarray) -> np.ndarray:
     """Return probabilities aligned to LABELS order: Low, Medium, High."""
     if hasattr(model, "predict_proba"):
         raw_proba = model.predict_proba(X)[0]
@@ -156,6 +159,11 @@ def health():
     }
 
 
+def _infer(args: tuple) -> tuple[str, dict]:
+    name, model, X = args
+    return name, format_prediction(name, get_proba(model, X))
+
+
 @app.post("/predict")
 def predict(data: InputData):
     if not models:
@@ -165,7 +173,7 @@ def predict(data: InputData):
     input_dict = data.model_dump()
 
     try:
-        X = pd.DataFrame([[input_dict[col] for col in FEATURE_COLS]], columns=FEATURE_COLS)
+        X = np.array([[input_dict[col] for col in FEATURE_COLS]])
     except KeyError as exc:
         raise HTTPException(status_code=400, detail=f"Missing required feature: {exc}") from exc
 
@@ -173,9 +181,8 @@ def predict(data: InputData):
 
     # The Final Model is the model selected in model_metadata.json. Individual models are still returned
     # for transparency and demo explanation.
-    for name, model in models.items():
-        proba = get_proba(model, X)
-        results[name] = format_prediction(name, proba)
+    for name, result in _executor.map(_infer, [(n, m, X) for n, m in models.items()]):
+        results[name] = result
 
     latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
     results["_meta"] = {
