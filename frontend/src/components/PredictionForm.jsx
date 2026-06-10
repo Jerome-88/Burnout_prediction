@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Activity, Briefcase, Bug, Coffee, Dumbbell, Laptop, Moon, User, Users, GitCommit } from 'lucide-react'
+import { Activity, Briefcase, Bug, Coffee, Dumbbell, Laptop, Moon, User, Users } from 'lucide-react'
 import SliderField from './SliderField'
 
 const DEFAULTS = {
@@ -9,7 +9,6 @@ const DEFAULTS = {
   sleep_hours: 7,
   caffeine_intake: 2,
   bugs_per_day: 5,
-  commits_per_day: 6,
   meetings_per_day: 3,
   screen_time: 8,
   exercise_hours: 1,
@@ -60,7 +59,6 @@ export default function PredictionForm({ onSubmit, loading }) {
         <SliderField icon={<Briefcase size={16} />} label="Daily work hours" name="daily_work_hours" value={form.daily_work_hours} onChange={set} min={1} max={24} step={0.5} unit=" h" hint="Total focused work or study hours." />
         <SliderField icon={<Users size={16} />} label="Meetings per day" name="meetings_per_day" value={form.meetings_per_day} onChange={set} min={0} max={15} unit=" mtg" hint="Scheduled calls, syncs, or discussions." />
         <SliderField icon={<Bug size={16} />} label="Bugs handled per day" name="bugs_per_day" value={form.bugs_per_day} onChange={set} min={0} max={30} hint="Issues fixed, reviewed, or debugged." />
-        <SliderField icon={<GitCommit size={16} />} label="Code commits per day" name="commits_per_day" value={form.commits_per_day} onChange={set} min={0} max={40} hint="Average code contribution activity." />
       </Section>
 
       <Section title="Health & Lifestyle" description="Sleep, screen exposure, caffeine, and recovery habits.">

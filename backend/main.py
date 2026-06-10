@@ -93,7 +93,6 @@ class InputData(BaseModel):
     sleep_hours: float = Field(..., ge=3, le=24, description="Average daily sleep hours")
     caffeine_intake: float = Field(..., ge=0, le=10, description="Average caffeine cups per day")
     bugs_per_day: float = Field(..., ge=0, le=30, description="Average bugs handled per day")
-    commits_per_day: float = Field(..., ge=0, le=40, description="Average code commits per day")
     meetings_per_day: float = Field(..., ge=0, le=15, description="Average meetings per day")
     screen_time: float = Field(..., ge=1, le=24, description="Average total screen time per day")
     exercise_hours: float = Field(..., ge=0, le=24, description="Average exercise hours per day")
